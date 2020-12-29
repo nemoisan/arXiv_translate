@@ -22,4 +22,4 @@ jobs:
         
     - name: Run Main
       run: |
-        python actions_test.py
+        python main.py
