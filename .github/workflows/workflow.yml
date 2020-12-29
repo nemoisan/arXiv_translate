@@ -2,11 +2,15 @@ name: Main workflow
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7]
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
+        python-version: ${{ matrix.python-version }}
         
     - name: Install dependencies
       run: |
@@ -14,4 +18,5 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         
     - name: Run Main
-    - run: python actions_test.py
+      run: |
+        python actions_test.py
