@@ -2,7 +2,7 @@ name: Notify Cron
 
 on:
   schedule:
-    - cron:  '15 5 * * *'
+    - cron:  '20 5 * * *'
   push:
     branches:
       - master2
