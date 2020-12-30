@@ -2,10 +2,7 @@ name: Notify Cron
 
 on:
   schedule:
-    - cron:  '20 5 * * *'
-  push:
-    branches:
-      - master2
+    - cron: '40 5 * * *'
 
 jobs:
   notify:
