@@ -1,14 +1,14 @@
-name: Main workflow
+name: Notify Cron
 
 on:
+  schedule:
+    - cron:  '15 5 * * *'
   push:
     branches:
       - master2
-  schedule:
-    - cron:  '6 5 * * *'
 
 jobs:
-  build:
+  notify:
     runs-on: ubuntu-latest
     strategy:
       matrix:
