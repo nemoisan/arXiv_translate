@@ -3,9 +3,9 @@ name: Main workflow
 on:
   push:
     branches:
-      - master
+      - master2
   schedule:
-    - cron:  '0 11 * * *'
+    - cron:  '0 5 * * *'
 
 jobs:
   build:
