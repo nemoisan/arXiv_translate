@@ -2,7 +2,7 @@ name: Notify Cron
 
 on:
   schedule:
-    - cron: '40 5 * * *'
+    - cron: '50 5 * * *'
 
 jobs:
   notify:
