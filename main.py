@@ -135,7 +135,7 @@ def parseArXivResults(arxiv_result):
 
             arr.append(
                 ArxivData(
-                    v["title"],
+                    v["title"].replace("\n", ""),
                     v["author"],
                     v["summary"].replace("\n", ""),
                     v["arxiv_url"],
