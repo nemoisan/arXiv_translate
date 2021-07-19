@@ -9,18 +9,20 @@ from dotenv import load_dotenv
 HEADERS = {'content-type': 'application/json'}
 
 config = None
+SAVE_FILE = "./save.log"
 
 
 class Config:
     def __init__(self):
         load_dotenv()
-        self.gcsURL = self.loadOr('APP_GCS_URL')
+        self.gasURL = self.loadOr(
+            'APP_GAS_URL', "https://script.google.com/macros/s/AKfycbwD9QatQCX0z5tiVKhGshhN0HbP_1eTm4dy_exeMkTJ_jqvURb-bNe8xg/exec")
         self.maxResult = self.loadInt('APP_MAX_RESULT', 10)
         self.category = self.loadOr('APP_CATEGORY', "cat:cs.AI")
         self.slackURL = self.loadOr('APP_SLACK_URL')
 
-        if (self.gcsURL == "" or self.slackURL == ""):
-            print("GCS_URL or SLACK_URL must be set")
+        if (self.gasURL == "" or self.slackURL == ""):
+            print("GAS_URL or SLACK_URL must be set")
             sys.exit(1)
 
     def loadOr(self, key, default=""):
@@ -41,7 +43,7 @@ class Config:
 
 
 def ping():
-    res = requests.get(config.gcsURL, headers=HEADERS, allow_redirects=True)
+    res = requests.get(config.gasURL, headers=HEADERS, allow_redirects=True)
     print(res.text)
 
 
@@ -55,8 +57,9 @@ def gasTranslate(payload):
     title, summaryをキーに含むdict
 
     """
+
     try:
-        res = requests.post(config.gcsURL, data=json.dumps(
+        res = requests.post(config.gasURL, data=json.dumps(
             payload), headers=HEADERS, timeout=(20, 20))
         if (res.status_code != 200):
             print("gas request error, code: {}, message:{}".format(
@@ -81,8 +84,8 @@ class TranslateData:
         }
 
 
-def parseGCSResult(gcsResult):
-    res = json.loads(gcsResult)
+def parseGASResult(gasResult):
+    res = json.loads(gasResult)
     if ('data' not in res):
         print('key: data is not exist')
         return None
@@ -96,8 +99,13 @@ def parseGCSResult(gcsResult):
 
 def getArXiv():
     try:
-        res = arxiv.query(query=config.category, max_results=config.maxResult,
-                          sort_by='submittedDate')
+        # res = arxiv.query(query=config.category, max_results=config.maxResult,
+        #                   sort_by='submittedDate')
+        res = arxiv.Search(
+            config.category,
+            max_results=config.maxResult,
+            sort_by=arxiv.SortCriterion.SubmittedDate
+        )
         return res
     except Exception as e:
         print("getArXiv error")
@@ -105,43 +113,13 @@ def getArXiv():
         return None
 
 
-class ArxivData:
-    def __init__(self, title, author, summary, arxiv_url, published):
-        self.title = title
-        self.author = author
-        self.summary = summary
-        self.arxiv_url = arxiv_url
-        self.published = published
-
-    def toDict(self):
-        return {
-            'title': self.title,
-            'author': self.author,
-            'summary': self.summary,
-            'arxiv_url': self.arxiv_url,
-            'published': self.published,
-        }
-
-
-def parseArXivResults(arxiv_result):
-    arr = []
-    for v in arxiv_result:
-        if (
-            "title" in v and
-            "author" in v and
-            "summary" in v and
-            "arxiv_url" in v and
-                "published" in v):
-
-            arr.append(
-                ArxivData(
-                    v["title"].replace("\n", ""),
-                    v["author"],
-                    v["summary"].replace("\n", ""),
-                    v["arxiv_url"],
-                    v["published"]
-                ))
-    return arr
+def arXivResultsToDict(arxivResult):
+    authors = [a.name for a in arxivResult.authors]
+    return {
+        "title": arxivResult.title.replace("\n", ""),
+        "authors": authors,
+        "summary": arxivResult.summary.replace("\n", "")
+    }
 
 
 def sendSlack(arxivData, translateData):
@@ -150,15 +128,18 @@ def sendSlack(arxivData, translateData):
         tmp.append("> {}".format(v))
     summary_with_quate = "\n".join(tmp)
 
+    if len(arxivData.links) > 0:
+        arxiv_url = arxivData.links[0]
+
     textList = [
         "*{}*".format(translateData.title),
         "> {}".format(arxivData.title),
         "_authors: {} (submitted {})_".format(
-            arxivData.author, arxivData.published),
+            arxivData.authors, arxivData.published),
         "\n",
         "{}".format(translateData.summary),
         "{}".format(summary_with_quate),
-        "{}".format(arxivData.arxiv_url)
+        "{}".format(arxiv_url)
     ]
     payload = {"text": "\n".join(textList)}
 
@@ -171,21 +152,47 @@ def sendSlack(arxivData, translateData):
         print(e)
 
 
+def logsResults(arxivData):
+    ids = []
+    for v in arxivData.results():
+        ids.append(v.entry_id)
+
+    with open(SAVE_FILE, "w") as f:
+        f.write("\n".join(ids))
+
+
+def getNotExitDataFromLog(arxivData):
+    if (not os.path.exists(SAVE_FILE)):
+        return arxivData.results()
+
+    with open(SAVE_FILE, "r") as f:
+        l = [s.strip() for s in f.readlines()]
+
+    n = []
+    for v in arxivData.results():
+        if(v.entry_id not in l):
+            n.append(v)
+    return n
+
+
 def main():
     global config
     config = Config()
 
-    res = getArXiv()
-    if (res is None):
+    arxivDataRaw = getArXiv()
+    if (arxivDataRaw is None):
         print("get arxiv failed")
         sys.exit(1)
+    arxivDataList = getNotExitDataFromLog(arxivDataRaw)
+    logsResults(arxivDataRaw)
 
-    arxivDataList = parseArXivResults(res)
     for arxivData in arxivDataList:
-        res = gasTranslate(arxivData.toDict())
+        arxivDataDict = arXivResultsToDict(arxivData)
+        print("hoge", arxivDataDict)
+        res = gasTranslate(arxivDataDict)
         if (res is None):
             continue
-        translateData = parseGCSResult(res)
+        translateData = parseGASResult(res)
         if (translateData is None):
             continue
 
