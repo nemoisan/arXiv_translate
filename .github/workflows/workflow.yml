@@ -31,7 +31,7 @@ jobs:
 
     - name: Run Change push
       run: |
-        git add save.logs
+        git add save.log
         git commit -m "update save.log"
         git status
         git push https://${{github.actor}}:${{secrets.GITHUB_TOKEN}}@github.com/${{github.repository}}.git
