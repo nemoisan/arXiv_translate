@@ -20,11 +20,18 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip    
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi      
     - name: Run Main
       env:
         APP_GCS_URL: ${{ secrets.APP_GCS_URL }}
         APP_SLACK_URL: ${{ secrets.APP_SLACK_URL }}
       run: |
         python main.py
+
+    - name: Run Change push
+      run: |
+        git add save.logs
+        git commit -m "update save.log"
+        git status
+        git push https://${{github.actor}}:${{secrets.GITHUB_TOKEN}}@github.com/${{github.repository}}.git
+        
