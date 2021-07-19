@@ -31,6 +31,10 @@ jobs:
 
     - name: Run Change push
       run: |
+        s=`git status -s`
+        if [ -z "$s" ]; then
+          exit 0
+        fi
         git config --global user.email "workflow@example.com"
         git config --global user.name "workflow user"
         git add save.log
