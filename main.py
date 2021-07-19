@@ -15,8 +15,7 @@ SAVE_FILE = "./save.log"
 class Config:
     def __init__(self):
         load_dotenv()
-        self.gasURL = self.loadOr(
-            'APP_GAS_URL', "https://script.google.com/macros/s/AKfycbwD9QatQCX0z5tiVKhGshhN0HbP_1eTm4dy_exeMkTJ_jqvURb-bNe8xg/exec")
+        self.gasURL = self.loadOr('APP_GAS_URL')
         self.maxResult = self.loadInt('APP_MAX_RESULT', 10)
         self.category = self.loadOr('APP_CATEGORY', "cat:cs.AI")
         self.slackURL = self.loadOr('APP_SLACK_URL')
