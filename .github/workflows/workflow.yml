@@ -35,8 +35,8 @@ jobs:
         if [ -z "$s" ]; then
           exit 0
         fi
-        git config --global user.email "workflow@example.com"
-        git config --global user.name "workflow user"
+        git config --global user.email "tim_story@hotmail.co.jp"
+        git config --global user.name "nemoisan"
         git add save.log
         git commit -m "update save.log"
         git status
